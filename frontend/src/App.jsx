@@ -186,7 +186,7 @@ function App() {
     const messagesPayload = [initialMessage];
 
     try {
-      const response = await axios.post('http://localhost:5000/analyze', {
+      const response = await axios.post('/api/analyze', {
         code: payloadCode,
         messages: messagesPayload
       });
@@ -225,7 +225,7 @@ function App() {
         ...payloadMessages
       ];
 
-      const response = await axios.post('http://localhost:5000/analyze', {
+      const response = await axios.post('/api/analyze', {
         messages: apiMessages
       });
 
