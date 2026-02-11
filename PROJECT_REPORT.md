@@ -50,7 +50,7 @@ The scope of this project is clearly defined to maintain focus on core deliverab
 - **Web Interface**: Designing a macOS-inspired window with traffic light controls, status bar with real-time editor statistics, and responsive layout.
 - **Backend API**: Developing a Flask-based REST API that securely communicates with the Groq AI service.
 
-The scope excludes tasks such as building custom AI models from scratch, implementing real-time code execution, multi-user collaboration, or deployment to production cloud environments. The focus remains on delivering a polished, locally-runnable AI tutoring experience.
+The scope excludes tasks such as building custom AI models from scratch, implementing real-time code execution, or multi-user collaboration. The application is deployable both locally and to cloud platforms (Vercel) using serverless functions, ensuring accessibility as a hosted web application.
 
 ---
 
@@ -242,9 +242,9 @@ The architecture follows a clean client-server model:
    - Axios for HTTP communication.
 
 2. **Application Layer (Backend)**:
-   - Flask REST API server.
+   - **Local Development**: Flask REST API server (Port 5000) with CORS.
+   - **Production (Vercel)**: Python Serverless Function (`api/analyze.py`) — no Flask required.
    - Handles request formatting and response parsing.
-   - Manages CORS for cross-origin frontend requests.
 
 3. **AI Service Layer**:
    - Groq Cloud API.
@@ -255,6 +255,7 @@ The architecture follows a clean client-server model:
    - Browser localStorage for history data.
    - No server-side database required.
 
+**Local Development Architecture:**
 ```
 ┌─────────────────────────────────────────────────┐
 │              React Frontend (Vite)               │
@@ -264,12 +265,32 @@ The architecture follows a clean client-server model:
 │  └──────────────┘  └─────────────────────────┘  │
 │              │  Axios HTTP (POST)  │             │
 └──────────────┼────────────────────┼─────────────┘
-               ▼                    ▼
+               ▼ Vite Proxy (/api)  ▼
 ┌─────────────────────────────────────────────────┐
 │           Flask Backend (Port 5000)              │
 │         /analyze endpoint (POST)                 │
 └──────────────────────┬──────────────────────────┘
                        ▼
+┌─────────────────────────────────────────────────┐
+│              Groq Cloud API                      │
+│         LLaMA 3.3 70B Versatile                  │
+└─────────────────────────────────────────────────┘
+```
+
+**Production Architecture (Vercel):**
+```
+┌─────────────────────────────────────────────────┐
+│          Vercel Edge Network (CDN)               │
+│  ┌──────────────────────────────────────────┐   │
+│  │  Static Assets (React SPA - Vite Build)  │   │
+│  └──────────────────────────────────────────┘   │
+│              │  /api/analyze (POST)  │           │
+│  ┌──────────────────────────────────────────┐   │
+│  │  Python Serverless Function              │   │
+│  │  (api/analyze.py - auto-scaled)          │   │
+│  └──────────────────────┬───────────────────┘   │
+└─────────────────────────┼───────────────────────┘
+                          ▼
 ┌─────────────────────────────────────────────────┐
 │              Groq Cloud API                      │
 │         LLaMA 3.3 70B Versatile                  │
@@ -500,6 +521,87 @@ Key frontend features:
 - **File System**: In-memory file management with create, import, rename, and close.
 - **History System**: localStorage-persisted analysis history with full CRUD operations.
 - **Responsive Panels**: Floating AI panel and slide-in history sidebar with smooth animations.
+
+---
+
+### 5.5 Cloud Deployment (Vercel)
+
+The application is deployed to **Vercel** for production access. Vercel hosts the React frontend as static assets via its global CDN and runs the backend as a **Python Serverless Function**.
+
+#### 5.5.1 Deployment Architecture
+
+The deployment required restructuring the backend from a Flask server to a standalone serverless function:
+
+- **`api/analyze.py`**: A Python serverless function using Vercel's native HTTP handler (`BaseHTTPRequestHandler`). This replaces Flask entirely in production, handling `POST` and `OPTIONS` (CORS preflight) requests.
+- **`vercel.json`**: Configuration file specifying the build command, output directory, and API route rewrites.
+- **Root `requirements.txt`**: Declares the `groq` SDK as the only serverless dependency.
+
+#### 5.5.2 Key Configuration — `vercel.json`
+
+```json
+{
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/dist",
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" }
+  ]
+}
+```
+
+#### 5.5.3 API URL Strategy
+
+The frontend uses **relative API URLs** (`/api/analyze`) instead of hardcoded `localhost` URLs. This ensures the same codebase works in both environments:
+
+- **Local Development**: Vite's dev server proxies `/api/*` requests to `http://localhost:5000` (Flask).
+- **Production**: Vercel routes `/api/*` to the Python serverless function.
+
+#### 5.5.4 Environment Variables
+
+The `GROQ_API_KEY` is configured through Vercel's dashboard under **Project Settings → Environment Variables**, keeping it secure and out of version control.
+
+#### 5.5.5 Serverless Function — `api/analyze.py`
+
+```python
+from http.server import BaseHTTPRequestHandler
+import json, os
+
+class handler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        content_length = int(self.headers.get('Content-Length', 0))
+        body = self.rfile.read(content_length)
+        data = json.loads(body)
+
+        code = data.get('code', '')
+        messages = data.get('messages', [])
+
+        if not messages:
+            messages = [{"role": "user", "content": f"Analyze this code:\n{code}"}]
+
+        from groq import Groq
+        client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+        system_prompt = "You are a helpful coding tutor..."
+        full_messages = [{"role": "system", "content": system_prompt}] + messages
+
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=full_messages
+        )
+        analysis = response.choices[0].message.content
+
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps({"analysis": analysis}).encode())
+
+    def do_OPTIONS(self):
+        # CORS preflight handling
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
+```
 
 ---
 
@@ -787,6 +889,13 @@ The project **"AI Code Tutor — An Intelligent Code Analysis and Learning Platf
 - Theme toggle (dark/light) — ✅ Complete.
 - Editor statistics (line, column) — ✅ Complete.
 - Welcome Screen with quick actions — ✅ Complete.
+- Cloud deployment (Vercel) — ✅ Complete.
+
+**Deployment:**
+- The application is deployed to **Vercel** and accessible as a live web application.
+- Frontend is served via Vercel's global CDN for fast load times worldwide.
+- Backend runs as a Python serverless function, auto-scaling with demand.
+- GitHub Repository: [github.com/Vikbuilds/Aicodetutor](https://github.com/Vikbuilds/Aicodetutor)
 
 **Key Metrics:**
 
@@ -795,13 +904,15 @@ The project **"AI Code Tutor — An Intelligent Code Analysis and Learning Platf
 | Average AI response time | < 3 seconds |
 | AI model used | LLaMA 3.3 70B Versatile |
 | Frontend bundle size | ~2 MB (optimized) |
-| Backend lines of code | 58 lines |
+| Backend lines of code | 58 lines (Flask) / 65 lines (Serverless) |
 | Frontend lines of code | ~886 lines |
 | Number of React components | 3 |
 | Test cases passed | 14/14 (100%) |
 | Bugs identified and fixed | 4 |
+| Deployment platform | Vercel (Serverless) |
+| Source control | GitHub |
 
-The project successfully demonstrates that powerful AI-assisted learning tools can be built with minimal infrastructure by leveraging cloud AI APIs, modern frontend frameworks, and lightweight backend architectures.
+The project successfully demonstrates that powerful AI-assisted learning tools can be built with minimal infrastructure by leveraging cloud AI APIs, modern frontend frameworks, lightweight backend architectures, and serverless cloud deployment.
 
 ---
 
@@ -818,6 +929,7 @@ Through the development process, the project demonstrated mastery of several cri
 - **State management** with React hooks and browser localStorage.
 - **UI/UX design** with professional-grade code editing and responsive layouts.
 - **REST API design** with proper validation, error handling, and CORS configuration.
+- **Cloud deployment** using Vercel serverless functions and CDN hosting.
 
 The code analysis feature demonstrated strong understanding of multiple programming languages, providing accurate explanations, error detection, and improvement suggestions. The interactive chat system enabled context-aware follow-up conversations, creating a truly educational experience. The history system allowed users to revisit and learn from past analyses.
 
@@ -909,6 +1021,9 @@ Connect to GitHub repositories to directly import, analyze, and improve code fro
 - Lucide Icons. (n.d.). Retrieved from https://lucide.dev/
 - npm — @monaco-editor/react. (n.d.). Retrieved from https://www.npmjs.com/package/@monaco-editor/react
 - npm — react-markdown. (n.d.). Retrieved from https://www.npmjs.com/package/react-markdown
+- Vercel Documentation. (n.d.). Retrieved from https://vercel.com/docs
+- Vercel Serverless Functions (Python). (n.d.). Retrieved from https://vercel.com/docs/functions/runtimes/python
+- GitHub — Vikbuilds/Aicodetutor. (2025). Retrieved from https://github.com/Vikbuilds/Aicodetutor
 
 ---
 
