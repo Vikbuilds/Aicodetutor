@@ -3,7 +3,6 @@ import { Code2, X, Play, Loader2, Plus, FileCode, Moon, Sun, History, Clock, Tra
 import axios from 'axios';
 import CodeEditor from './components/CodeEditor';
 import ExplanationPanel from './components/ExplanationPanel';
-import LandingPage from './components/LandingPage';
 import { Menu } from 'lucide-react';
 
 function App() {
@@ -32,9 +31,6 @@ function App() {
 
   // Editor Stats
   const [editorStats, setEditorStats] = useState({ line: 1, col: 1, totalLines: 0 });
-
-  // UX State
-  const [showLanding, setShowLanding] = useState(true);
 
   // File Input Ref
   const fileInputRef = useRef(null);
@@ -296,10 +292,6 @@ function App() {
   const headerBg = isDark ? 'bg-[#161b22]' : 'bg-[#f6f8fa]';
   const tabActiveBg = isDark ? 'bg-[#1e1e1e]' : 'bg-[#ffffff]';
   const tabHoverBg = isDark ? 'hover:bg-[#161b22]' : 'hover:bg-[#f3f4f6]';
-
-  if (showLanding) {
-    return <LandingPage onStart={() => setShowLanding(false)} theme={theme} />;
-  }
 
   return (
     <div className={`h-screen w-screen ${bgMain} flex items-center justify-center md:p-4 font-sans ${textColor} overflow-hidden transition-colors duration-300 relative`}>
