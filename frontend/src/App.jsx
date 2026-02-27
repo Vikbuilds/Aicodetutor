@@ -34,6 +34,28 @@ function App() {
 
   const activeFile = files.find(f => f.id === activeFileId);
 
+  const getLanguageFromFileName = (fileName) => {
+    if (!fileName) return 'python';
+    const ext = fileName.split('.').pop().toLowerCase();
+    const map = {
+      'py': 'python',
+      'js': 'javascript',
+      'jsx': 'javascript',
+      'ts': 'typescript',
+      'tsx': 'typescript',
+      'html': 'html',
+      'css': 'css',
+      'cpp': 'cpp',
+      'c': 'cpp',
+      'java': 'java',
+      'json': 'json',
+      'md': 'markdown'
+    };
+    return map[ext] || 'python';
+  };
+
+  const detectedLanguage = activeFile ? getLanguageFromFileName(activeFile.name) : 'python';
+
   // Load history from local storage on mount
   useEffect(() => {
     const savedHistory = localStorage.getItem('ai_tutor_history');
@@ -272,7 +294,7 @@ function App() {
 
   const handleShare = () => {
     if (!activeFile) return;
-    const shareContent = `### AI Code Tutor Insights\n\n**File:** ${activeFile.name}\n\n#### Code:\n\`\`\`python\n${activeFile.content}\n\`\`\`\n\n#### AI Analysis:\n${chatMessages.length > 0 ? chatMessages[chatMessages.length - 1].content : 'No analysis yet.'}`;
+    const shareContent = `### AI Code Tutor Insights\n\n**File:** ${activeFile.name}\n**Language:** ${detectedLanguage}\n\n#### Code:\n\`\`\`${detectedLanguage}\n${activeFile.content}\n\`\`\`\n\n#### AI Analysis:\n${chatMessages.length > 0 ? chatMessages[chatMessages.length - 1].content : 'No analysis yet.'}`;
 
     navigator.clipboard.writeText(shareContent).then(() => {
       alert("AI Insights copied to clipboard! Share it anywhere.");
@@ -450,6 +472,7 @@ function App() {
                   analyzing={loading}
                   theme={theme}
                   onStatsChange={handleStatsChange}
+                  language={detectedLanguage}
                 />
               ) : (
                 <div className={`h-full flex flex-col items-center justify-center overflow-y-auto`}>
