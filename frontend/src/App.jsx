@@ -3,6 +3,8 @@ import { Code2, X, Play, Loader2, Plus, FileCode, Moon, Sun, History, Clock, Tra
 import axios from 'axios';
 import CodeEditor from './components/CodeEditor';
 import ExplanationPanel from './components/ExplanationPanel';
+import LandingPage from './components/LandingPage';
+import { Menu } from 'lucide-react';
 
 function App() {
   const [files, setFiles] = useState([]);
@@ -30,6 +32,9 @@ function App() {
 
   // Editor Stats
   const [editorStats, setEditorStats] = useState({ line: 1, col: 1, totalLines: 0 });
+
+  // UX State
+  const [showLanding, setShowLanding] = useState(true);
 
   // File Input Ref
   const fileInputRef = useRef(null);
@@ -292,17 +297,30 @@ function App() {
   const tabActiveBg = isDark ? 'bg-[#1e1e1e]' : 'bg-[#ffffff]';
   const tabHoverBg = isDark ? 'hover:bg-[#161b22]' : 'hover:bg-[#f3f4f6]';
 
-  return (
-    <div className={`h-screen w-screen ${bgMain} flex items-center justify-center p-4 font-sans ${textColor} overflow-hidden transition-colors duration-300 relative`}>
+  if (showLanding) {
+    return <LandingPage onStart={() => setShowLanding(false)} theme={theme} />;
+  }
 
-      <div className={`w-full h-full max-w-[1600px] ${bgWindow} rounded-xl shadow-2xl border ${borderColor} flex flex-col overflow-hidden relative ring-1 ring-black/5 transition-colors duration-300`}>
+  return (
+    <div className={`h-screen w-screen ${bgMain} flex items-center justify-center md:p-4 font-sans ${textColor} overflow-hidden transition-colors duration-300 relative`}>
+
+      <div className={`w-full h-full md:max-w-[1600px] ${bgWindow} md:rounded-xl shadow-2xl border ${borderColor} flex flex-col overflow-hidden relative ring-1 ring-black/5 transition-colors duration-300`}>
 
         {/* Title Bar */}
         <header className={`h-10 ${headerBg} flex items-center justify-between px-4 border-b ${borderColor} shrink-0 select-none transition-colors duration-300`}>
           <div className="flex items-center space-x-2 w-20">
-            <div onClick={() => setActiveFileId(null)} className="w-3 h-3 rounded-full bg-[#ff5f56] hover:bg-[#ff5f56]/80 transition-colors shadow-sm cursor-pointer" title="Close Editor"></div>
-            <div className="w-3 h-3 rounded-full bg-[#ffbd2e] hover:bg-[#ffbd2e]/80 transition-colors shadow-sm cursor-pointer"></div>
-            <div className="w-3 h-3 rounded-full bg-[#27c93f] hover:bg-[#27c93f]/80 transition-colors shadow-sm cursor-pointer"></div>
+            {/* Mobile Menu Toggle */}
+            <button
+              onClick={() => setShowHistory(true)}
+              className="md:hidden p-1.5 hover:bg-black/5 rounded-md transition-colors"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div className="hidden md:flex items-center space-x-2">
+              <div onClick={() => setActiveFileId(null)} className="w-3 h-3 rounded-full bg-[#ff5f56] hover:bg-[#ff5f56]/80 transition-colors shadow-sm cursor-pointer" title="Close Editor"></div>
+              <div className="w-3 h-3 rounded-full bg-[#ffbd2e] hover:bg-[#ffbd2e]/80 transition-colors shadow-sm cursor-pointer"></div>
+              <div className="w-3 h-3 rounded-full bg-[#27c93f] hover:bg-[#27c93f]/80 transition-colors shadow-sm cursor-pointer"></div>
+            </div>
           </div>
           <div className="flex items-center space-x-2 opacity-80">
             <Code2 className="w-4 h-4 text-blue-500" />
@@ -438,7 +456,14 @@ function App() {
         {/* Main Content + Sidebar Container */}
         <div className="flex-1 flex overflow-hidden relative">
 
-          {/* Main Content Area */}
+          {/* Mobile Overlay Backdrop */}
+          {(showHistory || (showExplanation && activeFile)) && (
+            <div
+              className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-30 transition-opacity duration-300"
+              onClick={() => { setShowHistory(false); setShowExplanation(false); }}
+            />
+          )}
+
           {/* Main Content Area */}
           <main className={`flex-1 flex overflow-hidden relative ${bgMain}`}>
 
@@ -549,8 +574,9 @@ function App() {
 
             {/* AI Assistant Panel (Collapsible Sidebar) */}
             <div className={`
-              ${showExplanation && activeFile ? 'w-[450px] border-l' : 'w-0'} 
+              ${showExplanation && activeFile ? 'w-[450px] border-l max-md:w-[90%] max-md:translate-x-0' : 'w-0 max-md:-translate-x-full'} 
               ${borderColor} transition-all duration-300 ease-in-out flex flex-col overflow-hidden bg-opacity-95 backdrop-blur-sm
+              max-md:fixed max-md:right-0 max-md:top-0 max-md:h-screen max-md:z-50 ${isDark ? 'max-md:bg-[#0d1117]' : 'max-md:bg-white'}
             `}>
               <div className={`h-12 flex items-center justify-between px-5 border-b shrink-0 ${isDark ? 'border-white/5 bg-white/5' : 'border-black/5 bg-black/5'}`}>
                 <div className="flex items-center space-x-2">
@@ -576,9 +602,10 @@ function App() {
 
             {/* History Sidebar (Collapsible) */}
             <div className={`
-                ${showHistory ? 'w-80 border-l' : 'w-0'} 
+                ${showHistory ? 'w-80 border-l max-md:w-[80%] max-md:translate-x-0' : 'w-0 max-md:-translate-x-full'} 
                 ${isDark ? 'bg-[#161b22]' : 'bg-white'} 
                 ${borderColor} transition-all duration-300 ease-in-out flex flex-col overflow-hidden z-40
+                max-md:fixed max-md:left-0 max-md:top-0 max-md:h-screen max-md:z-50
             `}>
               <div className={`h-10 flex items-center justify-between px-4 border-b shrink-0 ${borderColor}`}>
                 <span className={`text-sm font-semibold ${textColor}`}>Running History</span>
