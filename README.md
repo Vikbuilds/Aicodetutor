@@ -85,13 +85,3 @@ OPENAI_API_KEY=your_api_key_here
 
 ---
 
-## 📝 Viva Questions & Answers
-
-**Q: How does the backend communicate with the frontend?**
-A: Through REST API endpoints. The frontend sends HTTP POST requests using Axios, and the backend responds with JSON data.
-
-**Q: Why did you choose Flask?**
-A: Flask is lightweight and perfect for microservices like this where we just need a simple API wrapper around the AI logic.
-
-**Q: How is the code stored?**
-A: We use SQLite for a lightweight, serverless database that stores submission history.

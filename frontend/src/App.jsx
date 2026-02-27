@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Code2, X, Play, Loader2, Plus, FileCode, Moon, Sun, History, Clock, Trash2, ChevronRight, FolderOpen } from 'lucide-react';
+import { Code2, X, Play, Loader2, Plus, FileCode, Moon, Sun, History, Clock, Trash2, ChevronRight, FolderOpen, Share2 } from 'lucide-react';
 import axios from 'axios';
 import CodeEditor from './components/CodeEditor';
 import ExplanationPanel from './components/ExplanationPanel';
@@ -25,6 +25,9 @@ function App() {
   const [editingFileId, setEditingFileId] = useState(null);
   const [tempName, setTempName] = useState("");
 
+  // Language State
+  const [language, setLanguage] = useState('python');
+
   // Editor Stats
   const [editorStats, setEditorStats] = useState({ line: 1, col: 1, totalLines: 0 });
 
@@ -45,6 +48,31 @@ function App() {
   useEffect(() => {
     localStorage.setItem('ai_tutor_history', JSON.stringify(history));
   }, [history]);
+
+  // Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ctrl + Enter: Analyze Code
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        handleAnalyze();
+      }
+      // Ctrl + S: Save (Mock)
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        console.log("File saved locally.");
+        // We could implement real local storage save or file download here
+      }
+      // Ctrl + B: Toggle Sidebar (History)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+        e.preventDefault();
+        setShowHistory(prev => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeFile, files, history]); // Re-bind if context changes
 
 
   const toggleTheme = () => {
@@ -244,6 +272,15 @@ function App() {
     }
   };
 
+  const handleShare = () => {
+    if (!activeFile) return;
+    const shareContent = `### AI Code Tutor Insights\n\n**File:** ${activeFile.name}\n**Language:** ${language}\n\n#### Code:\n\`\`\`${language}\n${activeFile.content}\n\`\`\`\n\n#### AI Analysis:\n${chatMessages.length > 0 ? chatMessages[chatMessages.length - 1].content : 'No analysis yet.'}`;
+
+    navigator.clipboard.writeText(shareContent).then(() => {
+      alert("AI Insights copied to clipboard! Share it anywhere.");
+    });
+  };
+
   // Dynamic Styles
   const isDark = theme === 'dark';
   const bgMain = isDark ? 'bg-[#0d1117]' : 'bg-[#e3e5e8]';
@@ -289,6 +326,32 @@ function App() {
               title="View History"
             >
               <History className="w-4 h-4" />
+            </button>
+
+            {/* Language Selector */}
+            <div className="flex items-center space-x-1">
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className={`text-[10px] font-medium bg-transparent border-none outline-none cursor-pointer p-1 rounded transition-colors ${isDark ? 'text-gray-400 hover:text-white hover:bg-white/5' : 'text-gray-500 hover:text-black hover:bg-black/5'}`}
+              >
+                <option value="python">Python</option>
+                <option value="javascript">JavaScript</option>
+                <option value="html">HTML</option>
+                <option value="css">CSS</option>
+                <option value="cpp">C++</option>
+                <option value="java">Java</option>
+              </select>
+            </div>
+
+            {/* Share Button */}
+            <button
+              onClick={handleShare}
+              disabled={!activeFile}
+              className={`p-1.5 rounded-md transition-colors ${!activeFile ? 'opacity-30 cursor-not-allowed' : (isDark ? 'hover:bg-white/10 text-gray-400 hover:text-white' : 'hover:bg-black/5 text-gray-500 hover:text-black')}`}
+              title="Share Insights"
+            >
+              <Share2 className="w-4 h-4" />
             </button>
 
             {activeFile && (
@@ -376,9 +439,12 @@ function App() {
         <div className="flex-1 flex overflow-hidden relative">
 
           {/* Main Content Area */}
-          <main className={`flex-1 relative ${bgMain} overflow-hidden`}>
-            {activeFile ? (
-              <>
+          {/* Main Content Area */}
+          <main className={`flex-1 flex overflow-hidden relative ${bgMain}`}>
+
+            {/* Editor Container */}
+            <div className="flex-1 relative min-w-0">
+              {activeFile ? (
                 <CodeEditor
                   code={activeFile.content}
                   onChange={updateFileContent}
@@ -386,199 +452,192 @@ function App() {
                   analyzing={loading}
                   theme={theme}
                   onStatsChange={handleStatsChange}
+                  language={language}
                 />
-
-                {showExplanation && (
-                  <div className={`absolute top-4 right-4 bottom-4 w-[480px] max-w-[90%] 
-                                ${isDark ? 'bg-[#161b22]/95 border-[#30363d]/50 ring-white/10' : 'bg-white/95 border-gray-200 ring-black/5'}
-                                backdrop-blur-xl border shadow-2xl rounded-xl flex flex-col overflow-hidden animate-in slide-in-from-right-8 duration-300 z-50 ring-1`}
-                  >
-                    <div className={`h-12 flex items-center justify-between px-5 border-b ${isDark ? 'border-white/5 bg-white/5' : 'border-black/5 bg-black/5'}`}>
-                      <div className="flex items-center space-x-2">
-                        <span className={`text-sm font-semibold ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>AI Assistant</span>
+              ) : (
+                <div className={`h-full flex flex-col items-center justify-center overflow-y-auto`}>
+                  <div className="w-full max-w-2xl px-6 py-8">
+                    {/* Header */}
+                    <div className="flex items-center space-x-4 mb-8">
+                      <Code2 className="w-12 h-12 text-blue-600" />
+                      <div>
+                        <h1 className={`text-2xl font-medium ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+                          AI Code Tutor
+                        </h1>
+                        <p className={textMuted}>Learning evolved.</p>
                       </div>
-                      <button
-                        onClick={() => setShowExplanation(false)}
-                        className={`p-1.5 rounded-lg transition-colors group ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'}`}
-                      >
-                        <X className={`w-4 h-4 ${isDark ? 'text-gray-400 group-hover:text-white' : 'text-gray-500 group-hover:text-black'}`} />
-                      </button>
-                    </div>
-                    <div className="flex-1 overflow-hidden relative">
-                      <ExplanationPanel
-                        messages={chatMessages}
-                        loading={loading}
-                        error={error}
-                        onSendMessage={handleSendMessage}
-                        theme={theme}
-                      />
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className={`h-full flex flex-col items-center justify-center overflow-y-auto`}>
-                <div className="w-full max-w-2xl px-6 py-8">
-
-                  {/* Header */}
-                  <div className="flex items-center space-x-4 mb-8">
-                    <Code2 className="w-12 h-12 text-blue-600" />
-                    <div>
-                      <h1 className={`text-2xl font-medium ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
-                        AI Code Tutor
-                      </h1>
-                      <p className={textMuted}>Learning evolved.</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-
-                    {/* Start Section */}
-                    <div className="space-y-4">
-                      <h2 className={`text-xs font-semibold uppercase tracking-wider ${textMuted}`}>Start</h2>
-
-                      <button
-                        onClick={createNewFile}
-                        className={`group flex items-center space-x-3 w-full text-left p-2 -ml-2 rounded-md transition-colors ${isDark ? 'hover:bg-blue-500/10' : 'hover:bg-blue-50'}`}
-                      >
-                        <FileCode className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
-                        <div className="flex flex-col">
-                          <span className={`${isDark ? 'text-blue-400' : 'text-blue-600'} group-hover:underline`}>New File</span>
-                        </div>
-                      </button>
-
-                      <button
-                        onClick={handleOpenFile}
-                        className={`group flex items-center space-x-3 w-full text-left p-2 -ml-2 rounded-md transition-colors ${isDark ? 'hover:bg-blue-500/10' : 'hover:bg-blue-50'}`}
-                      >
-                        <FolderOpen className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
-                        <div className="flex flex-col">
-                          <span className={`${isDark ? 'text-blue-400' : 'text-blue-600'} group-hover:underline`}>Open File...</span>
-                        </div>
-                      </button>
                     </div>
 
-                    {/* Recent Section */}
-                    <div className="space-y-4">
-                      <h2 className={`text-xs font-semibold uppercase tracking-wider ${textMuted}`}>Recent</h2>
-                      {history.slice(0, 5).map(item => (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                      {/* Start Section */}
+                      <div className="space-y-4">
+                        <h2 className={`text-xs font-semibold uppercase tracking-wider ${textMuted}`}>Start</h2>
                         <button
-                          key={item.id}
-                          onClick={() => restoreHistoryItem(item)}
-                          className={`group flex items-center justify-between w-full text-left p-2 -ml-2 rounded-md transition-colors ${isDark ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}
+                          onClick={createNewFile}
+                          className={`group flex items-center space-x-3 w-full text-left p-2 -ml-2 rounded-md transition-colors ${isDark ? 'hover:bg-blue-500/10' : 'hover:bg-blue-50'}`}
                         >
-                          <div className="flex flex-col overflow-hidden">
-                            <span className={`truncate text-sm ${isDark ? 'text-blue-400' : 'text-blue-600'} group-hover:underline`}>
-                              {item.preview || 'Untitled Snippet'}
-                            </span>
-                            <span className={`text-[10px] ${textMuted}`}>{item.timestamp}</span>
-                          </div>
-
-                          <div
-                            onClick={(e) => deleteHistoryItem(e, item.id)}
-                            className={`p-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-all ${isDark ? 'hover:bg-red-900/30 text-gray-500 hover:text-red-400' : 'hover:bg-red-50 text-gray-400 hover:text-red-500'}`}
-                            title="Delete"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
+                          <FileCode className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+                          <div className="flex flex-col">
+                            <span className={`${isDark ? 'text-blue-400' : 'text-blue-600'} group-hover:underline`}>New File</span>
                           </div>
                         </button>
-                      ))}
-                      {history.length === 0 && (
-                        <p className={`text-sm ${textMuted} italic`}>No recent history.</p>
-                      )}
+                        <button
+                          onClick={handleOpenFile}
+                          className={`group flex items-center space-x-3 w-full text-left p-2 -ml-2 rounded-md transition-colors ${isDark ? 'hover:bg-blue-500/10' : 'hover:bg-blue-50'}`}
+                        >
+                          <FolderOpen className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+                          <div className="flex flex-col">
+                            <span className={`${isDark ? 'text-blue-400' : 'text-blue-600'} group-hover:underline`}>Open File...</span>
+                          </div>
+                        </button>
+                      </div>
+
+                      {/* Recent Section */}
+                      <div className="space-y-4">
+                        <h2 className={`text-xs font-semibold uppercase tracking-wider ${textMuted}`}>Recent</h2>
+                        {history.slice(0, 5).map(item => (
+                          <button
+                            key={item.id}
+                            onClick={() => restoreHistoryItem(item)}
+                            className={`group flex items-center justify-between w-full text-left p-2 -ml-2 rounded-md transition-colors ${isDark ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}
+                          >
+                            <div className="flex flex-col overflow-hidden">
+                              <span className={`truncate text-sm ${isDark ? 'text-blue-400' : 'text-blue-600'} group-hover:underline`}>
+                                {item.preview || 'Untitled Snippet'}
+                              </span>
+                              <span className={`text-[10px] ${textMuted}`}>{item.timestamp}</span>
+                            </div>
+                            <div
+                              onClick={(e) => deleteHistoryItem(e, item.id)}
+                              className={`p-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-all ${isDark ? 'hover:bg-red-900/30 text-gray-500 hover:text-red-400' : 'hover:bg-red-50 text-gray-400 hover:text-red-500'}`}
+                              title="Delete"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </div>
+                          </button>
+                        ))}
+                        {history.length === 0 && (
+                          <p className={`text-sm ${textMuted} italic`}>No recent history.</p>
+                        )}
+                      </div>
                     </div>
 
-                  </div>
-
-                  {/* Footer Tips/Links */}
-                  <div className={`mt-12 border-t ${borderColor} pt-6 opacity-60`}>
-                    <div className="grid grid-cols-2 gap-4 text-xs">
-                      <div className="space-y-2">
-                        <h3 className="font-semibold">Help</h3>
-                        <p className="flex items-center space-x-2">
-                          <span className={`px-1.5 rounded text-[10px] ${isDark ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700'}`}>Ctrl</span>
-                          <span>+</span>
-                          <span className={`px-1.5 rounded text-[10px] ${isDark ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700'}`}>Space</span>
-                          <span>to trigger suggestions</span>
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        <h3 className="font-semibold">Customize</h3>
-                        <div className="flex gap-4">
-                          <button onClick={toggleTheme} className="hover:text-blue-500 text-left transition-colors">Change Color Theme</button>
+                    {/* Footer Tips/Links */}
+                    <div className={`mt-12 border-t ${borderColor} pt-6 opacity-60`}>
+                      <div className="grid grid-cols-2 gap-4 text-xs">
+                        <div className="space-y-2">
+                          <h3 className="font-semibold">Help</h3>
+                          <p className="flex items-center space-x-2">
+                            <span className={`px-1.5 rounded text-[10px] ${isDark ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700'}`}>Ctrl</span>
+                            <span>+</span>
+                            <span className={`px-1.5 rounded text-[10px] ${isDark ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700'}`}>Space</span>
+                            <span>to trigger suggestions</span>
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <h3 className="font-semibold">Customize</h3>
+                          <div className="flex gap-4">
+                            <button onClick={toggleTheme} className="hover:text-blue-500 text-left transition-colors">Change Color Theme</button>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </main>
-
-          {/* History Sidebar */}
-          <div className={`
-                absolute top-0 right-0 bottom-0 w-80 
-                ${isDark ? 'bg-[#161b22] border-l border-[#30363d]' : 'bg-white border-l border-gray-200'}
-                transform transition-transform duration-300 ease-in-out z-40 shadow-xl
-                ${showHistory ? 'translate-x-0' : 'translate-x-full'}
-            `}>
-            <div className={`h-10 flex items-center justify-between px-4 border-b ${borderColor}`}>
-              <span className={`text-sm font-semibold ${textColor}`}>Running History</span>
-              <div className="flex items-center space-x-1">
-                {history.length > 0 && (
-                  <button onClick={clearHistory} className="p-1.5 hover:text-red-500 transition-colors text-gray-500" title="Clear History">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                )}
-                <button onClick={() => setShowHistory(false)} className={`p-1.5 hover:bg-gray-700/20 rounded ${textMuted}`}>
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-2 space-y-2">
-              {history.length === 0 ? (
-                <div className={`flex flex-col items-center justify-center h-full ${textMuted} space-y-2 opacity-50`}>
-                  <History className="w-8 h-8" />
-                  <span className="text-xs">No history yet</span>
-                </div>
-              ) : (
-                history.map(item => (
-                  <div
-                    key={item.id}
-                    onClick={() => restoreHistoryItem(item)}
-                    className={`
-                                    group p-3 rounded-lg cursor-pointer border transition-all
-                                    ${isDark
-                        ? 'bg-[#0d1117] border-[#30363d] hover:border-blue-500/50 hover:bg-[#1f242c]'
-                        : 'bg-gray-50 border-gray-200 hover:border-blue-400 hover:bg-blue-50'}
-                                `}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] text-gray-500 flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {item.timestamp}
-                      </span>
-                      <button
-                        onClick={(e) => deleteHistoryItem(e, item.id)}
-                        className={`p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity ${isDark ? 'hover:bg-white/10 text-gray-400 hover:text-red-400' : 'hover:bg-black/5 text-gray-400 hover:text-red-500'}`}
-                        title="Delete Item"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    </div>
-                    <code className={`block text-xs font-mono truncate mb-2 ${isDark ? 'text-blue-300' : 'text-blue-600'}`}>
-                      {item.preview}
-                    </code>
-                    <div className="flex items-center text-[10px] text-gray-500 group-hover:text-blue-500 transition-colors">
-                      <span>Restore & View</span>
-                      <ChevronRight className="w-3 h-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                  </div>
-                ))
               )}
             </div>
-          </div>
+
+            {/* AI Assistant Panel (Collapsible Sidebar) */}
+            <div className={`
+              ${showExplanation && activeFile ? 'w-[450px] border-l' : 'w-0'} 
+              ${borderColor} transition-all duration-300 ease-in-out flex flex-col overflow-hidden bg-opacity-95 backdrop-blur-sm
+            `}>
+              <div className={`h-12 flex items-center justify-between px-5 border-b shrink-0 ${isDark ? 'border-white/5 bg-white/5' : 'border-black/5 bg-black/5'}`}>
+                <div className="flex items-center space-x-2">
+                  <span className={`text-sm font-semibold ${textColor}`}>AI Assistant</span>
+                </div>
+                <button
+                  onClick={() => setShowExplanation(false)}
+                  className={`p-1.5 rounded-lg transition-colors group ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'}`}
+                >
+                  <X className={`w-4 h-4 ${isDark ? 'text-gray-400 group-hover:text-white' : 'text-gray-500 group-hover:text-black'}`} />
+                </button>
+              </div>
+              <div className="flex-1 overflow-hidden relative min-w-[450px]">
+                <ExplanationPanel
+                  messages={chatMessages}
+                  loading={loading}
+                  error={error}
+                  onSendMessage={handleSendMessage}
+                  theme={theme}
+                />
+              </div>
+            </div>
+
+            {/* History Sidebar (Collapsible) */}
+            <div className={`
+                ${showHistory ? 'w-80 border-l' : 'w-0'} 
+                ${isDark ? 'bg-[#161b22]' : 'bg-white'} 
+                ${borderColor} transition-all duration-300 ease-in-out flex flex-col overflow-hidden z-40
+            `}>
+              <div className={`h-10 flex items-center justify-between px-4 border-b shrink-0 ${borderColor}`}>
+                <span className={`text-sm font-semibold ${textColor}`}>Running History</span>
+                <div className="flex items-center space-x-1">
+                  {history.length > 0 && (
+                    <button onClick={clearHistory} className="p-1.5 hover:text-red-500 transition-colors text-gray-500" title="Clear History">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  <button onClick={() => setShowHistory(false)} className={`p-1.5 hover:bg-gray-700/20 rounded ${textMuted}`}>
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-2 space-y-2 min-w-[320px]">
+                {history.length === 0 ? (
+                  <div className={`flex flex-col items-center justify-center h-full ${textMuted} space-y-2 opacity-50`}>
+                    <History className="w-8 h-8" />
+                    <span className="text-xs">No history yet</span>
+                  </div>
+                ) : (
+                  history.map(item => (
+                    <div
+                      key={item.id}
+                      onClick={() => restoreHistoryItem(item)}
+                      className={`
+                                      group p-3 rounded-lg cursor-pointer border transition-all
+                                      ${isDark
+                          ? 'bg-[#0d1117] border-[#30363d] hover:border-blue-500/50 hover:bg-[#1f242c]'
+                          : 'bg-gray-50 border-gray-200 hover:border-blue-400 hover:bg-blue-50'}
+                                  `}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] text-gray-500 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {item.timestamp}
+                        </span>
+                        <button
+                          onClick={(e) => deleteHistoryItem(e, item.id)}
+                          className={`p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity ${isDark ? 'hover:bg-white/10 text-gray-400 hover:text-red-400' : 'hover:bg-black/5 text-gray-400 hover:text-red-500'}`}
+                          title="Delete Item"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <code className={`block text-xs font-mono truncate mb-2 ${isDark ? 'text-blue-300' : 'text-blue-600'}`}>
+                        {item.preview}
+                      </code>
+                      <div className="flex items-center text-[10px] text-gray-500 group-hover:text-blue-500 transition-colors">
+                        <span>Restore & View</span>
+                        <ChevronRight className="w-3 h-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </main>
 
         </div>
 

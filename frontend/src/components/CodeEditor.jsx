@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 
-const CodeEditor = ({ code, onChange, onAnalyze, analyzing, theme, onStatsChange }) => {
+const CodeEditor = ({ code, onChange, onAnalyze, analyzing, theme, onStatsChange, language = 'python' }) => {
     const editorRef = useRef(null);
     const [buttonPosition, setButtonPosition] = useState(null);
     const [showButton, setShowButton] = useState(false);
@@ -73,7 +73,7 @@ const CodeEditor = ({ code, onChange, onAnalyze, analyzing, theme, onStatsChange
         <div className="h-full relative group bg-transparent">
             <Editor
                 height="100%"
-                defaultLanguage="python"
+                language={language}
                 value={code}
                 onChange={onChange}
                 // Conditionally set theme based on prop

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { AlertTriangle, Loader2, Sparkles, Send, User, Bot } from 'lucide-react';
+import { AlertTriangle, Loader2, Sparkles, Send, User, Bot, Activity, Code2, FileText } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -123,6 +123,62 @@ const ExplanationPanel = ({ messages, loading, error, onSendMessage, theme }) =>
           </div>
         )}
         <div ref={messagesEndRef} />
+      </div>
+
+      {/* Action Buttons */}
+      <div className={`px-4 py-3 grid grid-cols-2 gap-2 border-t ${isDark ? 'border-white/5 bg-[#161b22]' : 'border-gray-100 bg-gray-50'}`}>
+        <button
+          onClick={() => onSendMessage("Give me a 'Challenge' related to this code.")}
+          disabled={loading || messages.length === 0}
+          className={`flex items-center justify-center space-x-2 py-1.5 px-3 rounded-lg border text-[10px] font-medium transition-all
+            ${isDark
+              ? 'border-purple-500/30 text-purple-300 hover:bg-purple-500/10'
+              : 'border-purple-200 text-purple-600 hover:bg-purple-50'}
+            ${(loading || messages.length === 0) ? 'opacity-50 cursor-not-allowed grayscale' : ''}
+          `}
+        >
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>Challenge</span>
+        </button>
+        <button
+          onClick={() => onSendMessage("Provide a 'Trace' simulation for this code.")}
+          disabled={loading || messages.length === 0}
+          className={`flex items-center justify-center space-x-2 py-1.5 px-3 rounded-lg border text-[10px] font-medium transition-all
+            ${isDark
+              ? 'border-blue-500/30 text-blue-300 hover:bg-blue-500/10'
+              : 'border-blue-200 text-blue-600 hover:bg-blue-50'}
+            ${(loading || messages.length === 0) ? 'opacity-50 cursor-not-allowed grayscale' : ''}
+          `}
+        >
+          <Activity className="w-3.5 h-3.5" />
+          <span>Trace Logic</span>
+        </button>
+        <button
+          onClick={() => onSendMessage("Please 'Refactor' the code for better performance and readability.")}
+          disabled={loading || messages.length === 0}
+          className={`flex items-center justify-center space-x-2 py-1.5 px-3 rounded-lg border text-[10px] font-medium transition-all
+            ${isDark
+              ? 'border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10'
+              : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'}
+            ${(loading || messages.length === 0) ? 'opacity-50 cursor-not-allowed grayscale' : ''}
+          `}
+        >
+          <Code2 className="w-3.5 h-3.5" />
+          <span>Refactor</span>
+        </button>
+        <button
+          onClick={() => onSendMessage("Generate professional 'Documentation' (README/Docstrings) for this code.")}
+          disabled={loading || messages.length === 0}
+          className={`flex items-center justify-center space-x-2 py-1.5 px-3 rounded-lg border text-[10px] font-medium transition-all
+            ${isDark
+              ? 'border-amber-500/30 text-amber-300 hover:bg-amber-500/10'
+              : 'border-amber-200 text-amber-600 hover:bg-amber-50'}
+            ${(loading || messages.length === 0) ? 'opacity-50 cursor-not-allowed grayscale' : ''}
+          `}
+        >
+          <FileText className="w-3.5 h-3.5" />
+          <span>Gen Docs</span>
+        </button>
       </div>
 
       {/* Input Area */}
