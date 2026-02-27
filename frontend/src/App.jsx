@@ -1,9 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Code2, X, Play, Loader2, Plus, FileCode, Moon, Sun, History, Clock, Trash2, ChevronRight, FolderOpen, Share2 } from 'lucide-react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { Code2, X, Play, Loader2, Plus, FileCode, Moon, Sun, History, Clock, Trash2, ChevronRight, FolderOpen, Share2, Sparkles } from 'lucide-react';
 import axios from 'axios';
-import CodeEditor from './components/CodeEditor';
-import ExplanationPanel from './components/ExplanationPanel';
 import { Menu } from 'lucide-react';
+
+// Lazy load heavy components
+const CodeEditor = lazy(() => import('./components/CodeEditor'));
+const ExplanationPanel = lazy(() => import('./components/ExplanationPanel'));
+
+// Premium Loading Fallback
+const LoadingFallback = ({ message = "Loading component..." }) => (
+  <div className="h-full w-full flex flex-col items-center justify-center space-y-4 animate-in fade-in duration-500">
+    <div className="relative">
+      <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
+      <Sparkles className="w-4 h-4 text-blue-400 absolute -top-1 -right-1 animate-pulse" />
+    </div>
+    <span className="text-sm font-medium text-gray-400 tracking-wide animate-pulse">{message}</span>
+  </div>
+);
 
 function App() {
   const [files, setFiles] = useState([]);
@@ -465,15 +478,17 @@ function App() {
             {/* Editor Container */}
             <div className="flex-1 relative min-w-0">
               {activeFile ? (
-                <CodeEditor
-                  code={activeFile.content}
-                  onChange={updateFileContent}
-                  onAnalyze={handleAnalyze}
-                  analyzing={loading}
-                  theme={theme}
-                  onStatsChange={handleStatsChange}
-                  language={detectedLanguage}
-                />
+                <Suspense fallback={<LoadingFallback message="Initializing Editor..." />}>
+                  <CodeEditor
+                    code={activeFile.content}
+                    onChange={updateFileContent}
+                    onAnalyze={handleAnalyze}
+                    analyzing={loading}
+                    theme={theme}
+                    onStatsChange={handleStatsChange}
+                    language={detectedLanguage}
+                  />
+                </Suspense>
               ) : (
                 <div className={`h-full flex flex-col items-center justify-center overflow-y-auto`}>
                   <div className="w-full max-w-2xl px-6 py-8">
@@ -585,13 +600,18 @@ function App() {
                 </button>
               </div>
               <div className="flex-1 overflow-hidden relative min-w-[450px]">
-                <ExplanationPanel
-                  messages={chatMessages}
-                  loading={loading}
-                  error={error}
-                  onSendMessage={handleSendMessage}
-                  theme={theme}
-                />
+                <Suspense fallback={<LoadingFallback message="Loading AI Assistant..." />}>
+                  <ExplanationPanel
+                    chatMessages={chatMessages}
+                    onSendMessage={handleSendMessage}
+                    loading={loading}
+                    error={error}
+                    onClose={() => setShowExplanation(false)}
+                    theme={theme}
+                    onAnalyze={handleAnalyze}
+                    activeFile={activeFile}
+                  />
+                </Suspense>
               </div>
             </div>
 

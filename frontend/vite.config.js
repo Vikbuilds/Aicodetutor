@@ -11,5 +11,16 @@ export default defineConfig({
         changeOrigin: true,
       }
     }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'monaco': ['@monaco-editor/react'],
+          'markdown': ['react-markdown', 'remark-gfm'],
+          'vendor': ['react', 'react-dom', 'axios', 'lucide-react']
+        }
+      }
+    }
   }
 })
