@@ -26,9 +26,6 @@ function App() {
   const [editingFileId, setEditingFileId] = useState(null);
   const [tempName, setTempName] = useState("");
 
-  // Language State
-  const [language, setLanguage] = useState('python');
-
   // Editor Stats
   const [editorStats, setEditorStats] = useState({ line: 1, col: 1, totalLines: 0 });
 
@@ -275,7 +272,7 @@ function App() {
 
   const handleShare = () => {
     if (!activeFile) return;
-    const shareContent = `### AI Code Tutor Insights\n\n**File:** ${activeFile.name}\n**Language:** ${language}\n\n#### Code:\n\`\`\`${language}\n${activeFile.content}\n\`\`\`\n\n#### AI Analysis:\n${chatMessages.length > 0 ? chatMessages[chatMessages.length - 1].content : 'No analysis yet.'}`;
+    const shareContent = `### AI Code Tutor Insights\n\n**File:** ${activeFile.name}\n\n#### Code:\n\`\`\`python\n${activeFile.content}\n\`\`\`\n\n#### AI Analysis:\n${chatMessages.length > 0 ? chatMessages[chatMessages.length - 1].content : 'No analysis yet.'}`;
 
     navigator.clipboard.writeText(shareContent).then(() => {
       alert("AI Insights copied to clipboard! Share it anywhere.");
@@ -337,22 +334,6 @@ function App() {
             >
               <History className="w-4 h-4" />
             </button>
-
-            {/* Language Selector */}
-            <div className="flex items-center space-x-1">
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                className={`text-[10px] font-medium bg-transparent border-none outline-none cursor-pointer p-1 rounded transition-colors ${isDark ? 'text-gray-400 hover:text-white hover:bg-white/5' : 'text-gray-500 hover:text-black hover:bg-black/5'}`}
-              >
-                <option value="python">Python</option>
-                <option value="javascript">JavaScript</option>
-                <option value="html">HTML</option>
-                <option value="css">CSS</option>
-                <option value="cpp">C++</option>
-                <option value="java">Java</option>
-              </select>
-            </div>
 
             {/* Share Button */}
             <button
@@ -469,7 +450,6 @@ function App() {
                   analyzing={loading}
                   theme={theme}
                   onStatsChange={handleStatsChange}
-                  language={language}
                 />
               ) : (
                 <div className={`h-full flex flex-col items-center justify-center overflow-y-auto`}>
