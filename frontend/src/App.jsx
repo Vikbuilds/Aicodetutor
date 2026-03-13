@@ -71,15 +71,27 @@ function App() {
 
   // Load history from local storage on mount
   useEffect(() => {
-    const savedHistory = localStorage.getItem('ai_tutor_history');
-    if (savedHistory) {
-      setHistory(JSON.parse(savedHistory));
+    try {
+      const savedHistory = localStorage.getItem('ai_tutor_history');
+      if (savedHistory) {
+        const parsed = JSON.parse(savedHistory);
+        if (Array.isArray(parsed)) {
+          setHistory(parsed);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load history:", err);
+      localStorage.removeItem('ai_tutor_history'); // Clear corrupted data
     }
   }, []);
 
   // Save history to local storage whenever it changes
   useEffect(() => {
-    localStorage.setItem('ai_tutor_history', JSON.stringify(history));
+    try {
+      localStorage.setItem('ai_tutor_history', JSON.stringify(history));
+    } catch (err) {
+      console.error("Failed to save history:", err);
+    }
   }, [history]);
 
   // Keyboard Shortcuts
@@ -602,14 +614,11 @@ function App() {
               <div className="flex-1 overflow-hidden relative min-w-[450px]">
                 <Suspense fallback={<LoadingFallback message="Loading AI Assistant..." />}>
                   <ExplanationPanel
-                    chatMessages={chatMessages}
+                    messages={chatMessages}
                     onSendMessage={handleSendMessage}
                     loading={loading}
                     error={error}
-                    onClose={() => setShowExplanation(false)}
                     theme={theme}
-                    onAnalyze={handleAnalyze}
-                    activeFile={activeFile}
                   />
                 </Suspense>
               </div>
